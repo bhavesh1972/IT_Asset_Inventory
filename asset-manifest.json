@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/IT_Asset_Inventory/static/css/main.e6c13ad2.css",
+    "main.js": "/IT_Asset_Inventory/static/js/main.7eefed42.js",
+    "static/js/453.d9a0f4e3.chunk.js": "/IT_Asset_Inventory/static/js/453.d9a0f4e3.chunk.js",
+    "index.html": "/IT_Asset_Inventory/index.html",
+    "main.e6c13ad2.css.map": "/IT_Asset_Inventory/static/css/main.e6c13ad2.css.map",
+    "main.7eefed42.js.map": "/IT_Asset_Inventory/static/js/main.7eefed42.js.map",
+    "453.d9a0f4e3.chunk.js.map": "/IT_Asset_Inventory/static/js/453.d9a0f4e3.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.7eefed42.js"
+  ]
+}
