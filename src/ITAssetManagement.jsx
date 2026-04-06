@@ -111,7 +111,7 @@ const INITIAL_MAKES = [
 // ============================================================
 // access_level_code: 1=Master Admin, 2=Corporate Admin, 3=Circle User
 const INITIAL_USERS = [
-  { id: 1, loginName: "Admin", loginId: "admin", password: "Pass@123", fullName: "Siddharth Jain", role: "Master Admin", accessLevel: 1, circleCode: 0, regionCode: 0, status: "enabled", designation: "Manager IT", mobile: "9876500000", empCode: "SDHJAIN001" },
+  { id: 1, loginName: "Admin", loginId: "admin", password: "Pass@123", fullName: "siddharth_jain", role: "Master Admin", accessLevel: 1, circleCode: 0, regionCode: 0, status: "enabled", designation: "Manager IT", mobile: "9876500000", empCode: "SDHJAIN001" },
   { id: 2, loginName: "Corporate", loginId: "ams_corporate", password: "Pass@123", fullName: "Corporate Admin", role: "Corporate Admin", accessLevel: 2, circleCode: 0, regionCode: 0, status: "enabled", designation: "Account Officer", mobile: "9876500001", empCode: "CORP001" },
   { id: 3, loginName: "GM-O&M Bhopal", loginId: "gm_o&m_bhopal", password: "Pass@123", fullName: "GM-O&M Bhopal", role: "Circle User", accessLevel: 3, circleCode: 201, regionCode: 2, status: "enabled", designation: "General Manager", mobile: "6232913600", empCode: "93421418" },
   { id: 4, loginName: "GM-O&M Vidisha", loginId: "gm_o&m_vidisha", password: "Pass@123", fullName: "GM-O&M Vidisha", role: "Circle User", accessLevel: 3, circleCode: 207, regionCode: 2, status: "enabled", designation: "General Manager", mobile: "6232913800", empCode: "92386266" },
