@@ -60,6 +60,18 @@ import {
   isCircleUser,
 } from "./utils";
 
+// Import API service
+import {
+  assetsAPI,
+  transfersAPI,
+  historyAPI,
+  buybacksAPI,
+  usersAPI,
+  equipmentAPI,
+  hierarchyAPI,
+  settingsAPI,
+} from "./services/api";
+
 // Constants and utilities are now imported from separate files above
 
 
@@ -1967,48 +1979,209 @@ function HierarchyManager({ hierarchy, onUpdateHierarchy }) {
 export default function ITAssetManagement() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
-  const [assets, setAssets] = useState(INITIAL_ASSETS);
-  const [transfers, setTransfers] = useState(INITIAL_TRANSFERS);
-  const [history, setHistory] = useState(INITIAL_HISTORY);
-  const [buybacks, setBuybacks] = useState(INITIAL_BUYBACKS);
+  const [assets, setAssets] = useState([]);
+  const [transfers, setTransfers] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [buybacks, setBuybacks] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [deviceTypes, setDeviceTypes] = useState(INITIAL_DEVICE_TYPES);
-  const [makes, setMakes] = useState(INITIAL_MAKES);
+  const [users, setUsers] = useState([]);
+  const [deviceTypes, setDeviceTypes] = useState([]);
+  const [makes, setMakes] = useState([]);
   const [dropdownSettings, setDropdownSettings] = useState({ designations: DESIGNATIONS, docTypes: DOC_TYPES, statusOptions: STATUS_OPTIONS });
   const [hierarchy, setHierarchy] = useState(() => JSON.parse(JSON.stringify(HIERARCHY)));
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  // Load all data from API on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [
+          assetsData,
+          transfersData,
+          historyData,
+          buybacksData,
+          usersData,
+          deviceTypesData,
+          makesData,
+          hierarchyData,
+          settingsData,
+        ] = await Promise.all([
+          assetsAPI.getAll().catch(() => INITIAL_ASSETS),
+          transfersAPI.getAll().catch(() => INITIAL_TRANSFERS),
+          historyAPI.getAll().catch(() => INITIAL_HISTORY),
+          buybacksAPI.getAll().catch(() => INITIAL_BUYBACKS),
+          usersAPI.getAll().catch(() => INITIAL_USERS),
+          equipmentAPI.getDeviceTypes().catch(() => INITIAL_DEVICE_TYPES),
+          equipmentAPI.getMakes().catch(() => INITIAL_MAKES),
+          hierarchyAPI.get().catch(() => HIERARCHY),
+          settingsAPI.get('dropdown').catch(() => ({ designations: DESIGNATIONS, docTypes: DOC_TYPES, statusOptions: STATUS_OPTIONS })),
+        ]);
+
+        setAssets(assetsData);
+        setTransfers(transfersData);
+        setHistory(historyData);
+        setBuybacks(buybacksData);
+        setUsers(usersData);
+        setDeviceTypes(deviceTypesData);
+        setMakes(makesData);
+        setHierarchy(hierarchyData);
+        setDropdownSettings(settingsData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // Fallback to initial data
+        setAssets(INITIAL_ASSETS);
+        setTransfers(INITIAL_TRANSFERS);
+        setHistory(INITIAL_HISTORY);
+        setUsers(INITIAL_USERS);
+        setDeviceTypes(INITIAL_DEVICE_TYPES);
+        setMakes(INITIAL_MAKES);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Keep module-level _H in sync with state so all dropdowns stay live
   useEffect(() => { syncHierarchy(hierarchy); }, [hierarchy]);
 
-  const addLog = useCallback((assetId, action, details, performedBy) => {
-    setHistory(prev => [...prev, { id: newId("H"), assetId, action, details, performedBy: performedBy || user?.fullName || "System", timestamp: new Date().toISOString() }]);
+  const addLog = useCallback(async (assetId, action, details, performedBy) => {
+    try {
+      const logEntry = {
+        assetId,
+        action,
+        details,
+        performedBy: performedBy || user?.fullName || "System",
+      };
+      const savedLog = await historyAPI.create(logEntry);
+      setHistory(prev => [...prev, savedLog]);
+    } catch (error) {
+      console.error('Failed to add log:', error);
+    }
   }, [user]);
 
-  const handleSaveAsset = useCallback((asset) => {
-    setAssets(prev => { const exists = prev.find(a => a.id === asset.id); if (exists) { addLog(asset.id, "Updated", "Asset details updated", user?.fullName); return prev.map(a => a.id === asset.id ? asset : a); } else { addLog(asset.id, "Created", `Asset registered. Gate Pass: ${asset.gatePassNo}`, user?.fullName); return [...prev, asset]; } });
-    setSelectedAsset(null);
+  const handleSaveAsset = useCallback(async (asset) => {
+    try {
+      const exists = assets.find(a => a.id === asset.id);
+      if (exists) {
+        const updated = await assetsAPI.update(asset.id, asset);
+        setAssets(prev => prev.map(a => a.id === asset.id ? updated : a));
+        await addLog(asset.id, "Updated", "Asset details updated", user?.fullName);
+      } else {
+        const created = await assetsAPI.create(asset);
+        setAssets(prev => [...prev, created]);
+        await addLog(created.id, "Created", `Asset registered. Gate Pass: ${asset.gatePassNo}`, user?.fullName);
+      }
+      setSelectedAsset(null);
+    } catch (error) {
+      console.error('Failed to save asset:', error);
+      alert('Failed to save asset. Please try again.');
+    }
+  }, [assets, addLog, user]);
+
+  const handleBulkSave = useCallback(async (newAssets) => {
+    try {
+      const createdAssets = await Promise.all(
+        newAssets.map(asset => assetsAPI.create(asset))
+      );
+      setAssets(prev => [...prev, ...createdAssets]);
+      await addLog("BULK", "Bulk Import", `${newAssets.length} assets imported`, user?.fullName);
+    } catch (error) {
+      console.error('Failed to bulk save assets:', error);
+      alert('Failed to import assets. Please try again.');
+    }
   }, [addLog, user]);
 
-  const handleBulkSave = useCallback((newAssets) => {
-    setAssets(prev => [...prev, ...newAssets]);
-    addLog("BULK", "Bulk Import", `${newAssets.length} assets imported`, user?.fullName);
+  const handleTransfer = useCallback(async (transfer, oldAsset, updatedAsset) => {
+    try {
+      const createdTransfer = await transfersAPI.create(transfer);
+      setTransfers(prev => [...prev, createdTransfer]);
+
+      const updated = await assetsAPI.update(updatedAsset.id, {
+        ...updatedAsset,
+        transferCount: (updatedAsset.transferCount || 0) + 1
+      });
+      setAssets(prev => prev.map(a => a.id === updatedAsset.id ? updated : a));
+
+      await addLog(transfer.assetId, "Transferred", `From ${transfer.fromOffice} to ${transfer.toOffice} (GP: ${transfer.gatePassNo})`, user?.fullName);
+    } catch (error) {
+      console.error('Failed to transfer asset:', error);
+      alert('Failed to transfer asset. Please try again.');
+    }
   }, [addLog, user]);
 
-  const handleTransfer = useCallback((transfer, oldAsset, updatedAsset) => {
-    setTransfers(prev => [...prev, transfer]);
-    setAssets(prev => prev.map(a => a.id === updatedAsset.id ? { ...updatedAsset, transferCount: (updatedAsset.transferCount || 0) + 1 } : a));
-    addLog(transfer.assetId, "Transferred", `From ${transfer.fromOffice} to ${transfer.toOffice} (GP: ${transfer.gatePassNo})`, user?.fullName);
+  const handleAddBuyback = useCallback(async (buyback) => {
+    try {
+      const createdBuyback = await buybacksAPI.create(buyback);
+      setBuybacks(prev => [...prev, createdBuyback]);
+
+      const updated = await assetsAPI.update(buyback.assetId, { status: "Disposed" });
+      setAssets(prev => prev.map(a => a.id === buyback.assetId ? updated : a));
+
+      await addLog(buyback.assetId, "Buyback", `${buyback.buybackType} by ${buyback.buybackBy} at ₹${buyback.amount}`, user?.fullName);
+    } catch (error) {
+      console.error('Failed to add buyback:', error);
+      alert('Failed to add buyback. Please try again.');
+    }
   }, [addLog, user]);
 
-  const handleAddBuyback = useCallback((buyback) => {
-    setBuybacks(prev => [...prev, buyback]);
-    setAssets(prev => prev.map(a => a.id === buyback.assetId ? { ...a, status: "Disposed" } : a));
-    addLog(buyback.assetId, "Buyback", `${buyback.buybackType} by ${buyback.buybackBy} at ₹${buyback.amount}`, user?.fullName);
-  }, [addLog, user]);
+  // Update hierarchy in backend
+  const updateHierarchyInBackend = useCallback(async (newHierarchy) => {
+    try {
+      await hierarchyAPI.update(newHierarchy);
+      setHierarchy(newHierarchy);
+    } catch (error) {
+      console.error('Failed to update hierarchy:', error);
+      alert('Failed to update hierarchy. Please try again.');
+    }
+  }, []);
+
+  // Update dropdown settings in backend
+  const updateDropdownSettingsInBackend = useCallback(async (newSettings) => {
+    try {
+      await settingsAPI.update('dropdown', newSettings);
+      setDropdownSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      alert('Failed to update settings. Please try again.');
+    }
+  }, []);
+
+  // Update device types in backend
+  const updateDeviceTypesInBackend = useCallback(async (newDeviceTypes) => {
+    try {
+      await equipmentAPI.updateDeviceTypes(newDeviceTypes);
+      setDeviceTypes(newDeviceTypes);
+    } catch (error) {
+      console.error('Failed to update device types:', error);
+      alert('Failed to update device types. Please try again.');
+    }
+  }, []);
+
+  // Update makes in backend
+  const updateMakesInBackend = useCallback(async (newMakes) => {
+    try {
+      await equipmentAPI.updateMakes(newMakes);
+      setMakes(newMakes);
+    } catch (error) {
+      console.error('Failed to update makes:', error);
+      alert('Failed to update makes. Please try again.');
+    }
+  }, []);
 
   if (!user) return <LoginPage onLogin={setUser} users={users} />;
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: "'Segoe UI',sans-serif" }}>
+      <div style={{ textAlign: 'center' }}>
+        <RefreshCw size={48} color={T.primary} style={{ animation: 'spin 1s linear infinite' }} />
+        <p style={{ marginTop: 16, color: T.textMid, fontSize: 14 }}>Loading data...</p>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    </div>
+  );
 
   const renderPage = () => {
     switch (page) {
@@ -2022,10 +2195,10 @@ export default function ITAssetManagement() {
       case "history": return <ActivityLog history={history} assets={assets} />;
       case "documents": return <DocumentRefs assets={assets} />;
       case "reports": return <Reports assets={assets} transfers={transfers} />;
-      case "equipment-master": return isMasterAdmin(user) ? <EquipmentMaster deviceTypes={deviceTypes} makes={makes} onUpdateDeviceTypes={setDeviceTypes} onUpdateMakes={setMakes} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied — Master Admin Only</div>;
+      case "equipment-master": return isMasterAdmin(user) ? <EquipmentMaster deviceTypes={deviceTypes} makes={makes} onUpdateDeviceTypes={updateDeviceTypesInBackend} onUpdateMakes={updateMakesInBackend} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied — Master Admin Only</div>;
       case "user-management": return isMasterAdmin(user) ? <UserManagement users={users} onUpdateUsers={setUsers} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied</div>;
-      case "dropdown-settings": return isMasterAdmin(user) ? <DropdownSettings dropdownSettings={dropdownSettings} onUpdateDropdownSettings={setDropdownSettings} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied</div>;
-      case "hierarchy-manager": return isMasterAdmin(user) ? <HierarchyManager hierarchy={hierarchy} onUpdateHierarchy={setHierarchy} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied</div>;
+      case "dropdown-settings": return isMasterAdmin(user) ? <DropdownSettings dropdownSettings={dropdownSettings} onUpdateDropdownSettings={updateDropdownSettingsInBackend} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied</div>;
+      case "hierarchy-manager": return isMasterAdmin(user) ? <HierarchyManager hierarchy={hierarchy} onUpdateHierarchy={updateHierarchyInBackend} /> : <div style={{ padding: 40, textAlign: "center", color: T.danger }}>Access Denied</div>;
       default: return <Dashboard assets={assets} transfers={transfers} history={history} onNav={setPage} user={user} />;
     }
   };

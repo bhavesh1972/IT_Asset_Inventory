@@ -65,16 +65,16 @@ export const equipmentAPI = {
   updateMakes: (makes) => apiRequest('/makes', { method: 'PUT', body: JSON.stringify(makes) }),
 };
 
-// Hierarchy API
+// Hierarchy API (stored as settings with key 'hierarchy')
 export const hierarchyAPI = {
-  get: () => apiRequest('/hierarchy'),
-  update: (hierarchy) => apiRequest('/hierarchy', { method: 'PUT', body: JSON.stringify(hierarchy) }),
+  get: () => apiRequest('/settings/hierarchy'),
+  update: (hierarchy) => apiRequest('/settings/hierarchy', { method: 'PUT', body: JSON.stringify(hierarchy) }),
 };
 
 // Settings API
 export const settingsAPI = {
-  get: () => apiRequest('/settings'),
-  update: (settings) => apiRequest('/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  get: (key) => apiRequest(`/settings/${key}`),
+  update: (key, value) => apiRequest(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
 };
 
 // Initialize data (for first-time setup)
