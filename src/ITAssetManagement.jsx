@@ -15,228 +15,58 @@ import {
 } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-// ============================================================
-// THEME
-// ============================================================
-const T = {
-  sidebar: "#1e1b4b", sidebarHover: "#312e81", sidebarActive: "#4c1d95",
-  primary: "#7c3aed", primaryHover: "#6d28d9", primaryLight: "#ede9fe",
-  primaryLighter: "#f5f3ff", accent: "#a855f7",
-  success: "#10b981", successLight: "#d1fae5",
-  warning: "#f59e0b", warningLight: "#fef3c7",
-  danger: "#ef4444", dangerLight: "#fee2e2",
-  info: "#3b82f6", infoLight: "#dbeafe",
-  bg: "#f8fafc", card: "#ffffff", border: "#e2e8f0",
-  text: "#1e293b", textMid: "#475569", textLight: "#94a3b8",
-  orange: "#f97316", orangeLight: "#ffedd5",
-};
+// Import constants
+import {
+  T,
+  THEME,
+  POLICY_CIRCULAR,
+  INITIAL_DEVICE_TYPES,
+  INITIAL_MAKES,
+  INITIAL_USERS,
+  STATUS_OPTIONS,
+  DESIGNATIONS,
+  DOC_TYPES,
+  HIERARCHY,
+  syncHierarchy,
+  getCurrentHierarchy,
+  ALL_REGIONS,
+  getCircles,
+  getDivisions,
+  getSubdivisions,
+  getDCs,
+  INITIAL_ASSETS,
+  INITIAL_TRANSFERS,
+  INITIAL_HISTORY,
+  INITIAL_BUYBACKS,
+} from "./constants";
 
-// ============================================================
-// POLICY CIRCULAR
-// ============================================================
-const POLICY_CIRCULAR = "MD/MK/CGM(HR&A)/2659-2660 dated: 30-06-2023";
+// Import utilities
+import {
+  formatDate,
+  formatDateTime,
+  yearsOld,
+  isWarrantyExpired,
+  isWarrantyExpiringSoon,
+  getWarrantyStatus,
+  getStatusColor,
+  newId,
+  newGatePassNo,
+  buybackEligible,
+  buybackValue,
+  parseCSV,
+  canEdit,
+  isMasterAdmin,
+  isCorporateAdmin,
+  isCircleUser,
+} from "./utils";
 
-// ============================================================
-// INITIAL MASTER DATA (from Excel)
-// ============================================================
-const INITIAL_DEVICE_TYPES = [
-  { code: 1, name: "Desktop" }, { code: 2, name: "Printer" },
-  { code: 3, name: "UPS" }, { code: 4, name: "Laptop" },
-  { code: 5, name: "Scanner" }, { code: 6, name: "LED TV" },
-  { code: 7, name: "Mobile Phone" }, { code: 8, name: "Finger Biometric" },
-  { code: 9, name: "IRIS" }, { code: 10, name: "Multifunction Printer" },
-  { code: 11, name: "A3 Multifunction Printer" }, { code: 12, name: "Monitor" },
-  { code: 13, name: "CPU" }, { code: 14, name: "Keyboard" },
-  { code: 15, name: "Mouse" }, { code: 16, name: "LPRF Module" },
-  { code: 17, name: "Telephones" }, { code: 18, name: "Dongle" },
-  { code: 19, name: "All In One PC" }, { code: 20, name: "PoS Machine" },
-  { code: 22, name: "Tablet" }, { code: 23, name: "Dot Matrix Printer" },
-  { code: 24, name: "Assembled CPU" }, { code: 25, name: "Switch" },
-  { code: 26, name: "Router" }, { code: 27, name: "QR Code Printer" },
-];
+// Constants and utilities are now imported from separate files above
 
-const INITIAL_MAKES = [
-  { code: 11, name: "Acer", deviceCode: 1 }, { code: 12, name: "Dell", deviceCode: 1 },
-  { code: 13, name: "HCL", deviceCode: 1 }, { code: 14, name: "Assembled", deviceCode: 1 },
-  { code: 21, name: "Samsung", deviceCode: 2 }, { code: 22, name: "HP", deviceCode: 2 },
-  { code: 23, name: "Canon", deviceCode: 2 }, { code: 24, name: "Ricoh", deviceCode: 2 },
-  { code: 25, name: "Brother", deviceCode: 2 }, { code: 26, name: "Epson", deviceCode: 2 },
-  { code: 31, name: "BPE", deviceCode: 3 }, { code: 32, name: "Intex", deviceCode: 3 },
-  { code: 33, name: "Uniline", deviceCode: 3 }, { code: 34, name: "Emerson", deviceCode: 3 },
-  { code: 35, name: "Arrow", deviceCode: 3 }, { code: 36, name: "Luminous", deviceCode: 3 },
-  { code: 37, name: "Cyber Power", deviceCode: 3 }, { code: 38, name: "ZEBION", deviceCode: 3 },
-  { code: 41, name: "Acer", deviceCode: 4 }, { code: 42, name: "HP", deviceCode: 4 },
-  { code: 43, name: "Lenovo", deviceCode: 4 }, { code: 44, name: "Dell", deviceCode: 4 },
-  { code: 51, name: "Canon", deviceCode: 5 }, { code: 52, name: "Epson", deviceCode: 5 },
-  { code: 61, name: "Samsung", deviceCode: 6 }, { code: 62, name: "Sony", deviceCode: 6 },
-  { code: 63, name: "LG", deviceCode: 6 }, { code: 64, name: "Videocon", deviceCode: 6 },
-  { code: 71, name: "Intex", deviceCode: 7 }, { code: 81, name: "Mantra", deviceCode: 8 },
-  { code: 91, name: "Irishield", deviceCode: 9 },
-  { code: 101, name: "Samsung", deviceCode: 10 }, { code: 102, name: "Canon", deviceCode: 10 },
-  { code: 103, name: "HP", deviceCode: 10 }, { code: 104, name: "Brother", deviceCode: 10 },
-  { code: 111, name: "HP", deviceCode: 11 }, { code: 112, name: "Samsung", deviceCode: 11 },
-  { code: 113, name: "Brother", deviceCode: 11 }, { code: 114, name: "Canon", deviceCode: 11 },
-  { code: 121, name: "Acer", deviceCode: 12 }, { code: 122, name: "HP", deviceCode: 12 },
-  { code: 123, name: "Dell", deviceCode: 12 }, { code: 124, name: "Compaq", deviceCode: 12 },
-  { code: 125, name: "Lenovo", deviceCode: 12 }, { code: 126, name: "HCL", deviceCode: 12 },
-  { code: 127, name: "LG", deviceCode: 12 },
-  { code: 131, name: "Dell", deviceCode: 13 }, { code: 132, name: "HP", deviceCode: 13 },
-  { code: 133, name: "HCL", deviceCode: 13 }, { code: 134, name: "Assembled", deviceCode: 13 },
-  { code: 135, name: "Lenovo", deviceCode: 13 }, { code: 136, name: "LG", deviceCode: 13 },
-  { code: 137, name: "Acer", deviceCode: 13 },
-  { code: 141, name: "HP", deviceCode: 14 }, { code: 142, name: "Acer", deviceCode: 14 },
-  { code: 143, name: "Logitech", deviceCode: 14 }, { code: 144, name: "Dell", deviceCode: 14 },
-  { code: 151, name: "HP", deviceCode: 15 }, { code: 152, name: "Acer", deviceCode: 15 },
-  { code: 153, name: "Logitech", deviceCode: 15 }, { code: 154, name: "Dell", deviceCode: 15 },
-  { code: 161, name: "DRMZ", deviceCode: 16 },
-  { code: 171, name: "Binatone", deviceCode: 17 }, { code: 172, name: "Euroset", deviceCode: 17 },
-  { code: 181, name: "D-Link", deviceCode: 18 },
-  { code: 191, name: "Lenovo", deviceCode: 19 },
-  { code: 244, name: "Acer", deviceCode: 19 },
-  { code: 201, name: "Mosambee", deviceCode: 20 },
-  { code: 221, name: "Lenovo", deviceCode: 22 },
-  { code: 231, name: "EPSON", deviceCode: 23 },
-  { code: 241, name: "ZEBION", deviceCode: 24 },
-  { code: 242, name: "Cisco", deviceCode: 25 },
-  { code: 243, name: "Cisco", deviceCode: 26 },
-  { code: 245, name: "Udyama", deviceCode: 27 },
-  { code: 246, name: "Apple", deviceCode: 7 },
-  { code: 247, name: "Samsung", deviceCode: 7 },
-  { code: 248, name: "Microsoft", deviceCode: 22 },
-  { code: 249, name: "ELNOVA", deviceCode: 3 },
-];
 
-// ============================================================
-// USER ROLES & INITIAL USERS (from Excel Login sheet)
-// ============================================================
-// access_level_code: 1=Master Admin, 2=Corporate Admin, 3=Circle User
-const INITIAL_USERS = [
-  { id: 1, loginName: "Admin", loginId: "admin", password: "Pass@123", fullName: "siddharth_jain", role: "Master Admin", accessLevel: 1, circleCode: 0, regionCode: 0, status: "enabled", designation: "Manager IT", mobile: "9876500000", empCode: "SDHJAIN001" },
-  { id: 2, loginName: "Corporate", loginId: "ams_corporate", password: "Pass@123", fullName: "Corporate Admin", role: "Corporate Admin", accessLevel: 2, circleCode: 0, regionCode: 0, status: "enabled", designation: "Account Officer", mobile: "9876500001", empCode: "CORP001" },
-  { id: 3, loginName: "GM-O&M Bhopal", loginId: "gm_o&m_bhopal", password: "Pass@123", fullName: "GM-O&M Bhopal", role: "Circle User", accessLevel: 3, circleCode: 201, regionCode: 2, status: "enabled", designation: "General Manager", mobile: "6232913600", empCode: "93421418" },
-  { id: 4, loginName: "GM-O&M Vidisha", loginId: "gm_o&m_vidisha", password: "Pass@123", fullName: "GM-O&M Vidisha", role: "Circle User", accessLevel: 3, circleCode: 207, regionCode: 2, status: "enabled", designation: "General Manager", mobile: "6232913800", empCode: "92386266" },
-  { id: 5, loginName: "GM-City Bhopal", loginId: "gm_city_bhopal", password: "Pass@123", fullName: "GM-City Circle Bhopal", role: "Circle User", accessLevel: 3, circleCode: 203, regionCode: 2, status: "enabled", designation: "General Manager", mobile: "6232913400", empCode: "93326096" },
-];
 
-// ============================================================
-// HIERARCHY
-// ============================================================
-const HIERARCHY = {
-  "Corporate Office": {
-    "HQ-Bhopal": {
-      "IT Department": { "SCADA Section": ["SCADA DC"], "Network Section": ["Network DC"] },
-      "Finance Department": { "Accounts Section": ["Accounts DC"], "Budget Section": ["Budget DC"] },
-      "HR Department": { "Establishment": ["Estb. DC"] },
-      "MD Office": { "MD Secretariat": ["MD DC"] },
-    }
-  },
-  "Bhopal Region": {
-    "Bhopal City Circle": {
-      "Bhopal Urban Division-1": {
-        "Arera Colony Sub-Division": ["Arera DC", "MP Nagar DC"],
-        "Berasia Road Sub-Division": ["Berasia DC"],
-        "Shyamla Hills Sub-Division": ["Shyamla DC"],
-      },
-      "Bhopal Urban Division-2": {
-        "Habibganj Sub-Division": ["Habibganj DC", "New Market DC"],
-        "Kolar Sub-Division": ["Kolar DC"],
-      },
-    },
-    "Bhopal O&M Circle": {
-      "Vidisha Division": { "Vidisha Sub-Division": ["Vidisha DC"], "Ganj Basoda Sub-Division": ["Ganj Basoda DC"] },
-      "Rajgarh Division": { "Rajgarh Sub-Division": ["Rajgarh DC"] },
-      "Narmadapuram Division": { "Narmadapuram Sub-Division": ["Narmadapuram DC"] },
-      "Sehore Division": { "Sehore Sub-Division": ["Sehore DC"], "Ashta Sub-Division": ["Ashta DC"] },
-      "Raisen Division": { "Raisen Sub-Division": ["Raisen DC"] },
-      "Betul Division": { "Betul Sub-Division": ["Betul DC"] },
-      "Harda Division": { "Harda Sub-Division": ["Harda DC"] },
-    },
-  },
-  "Gwalior Region": {
-    "Gwalior City Circle": {
-      "Gwalior Urban Division": { "Lashkar Sub-Division": ["Lashkar DC"], "Morar Sub-Division": ["Morar DC"] },
-    },
-    "Gwalior O&M Circle": {
-      "Gwalior Rural Division": { "Gwalior Rural Sub-Division": ["Gwalior Rural DC"] },
-      "Bhind Division": { "Bhind Sub-Division": ["Bhind DC"] },
-      "Morena Division": { "Morena Sub-Division": ["Morena DC"] },
-      "Guna Division": { "Guna Sub-Division": ["Guna DC"] },
-      "Sheopur Division": { "Sheopur Sub-Division": ["Sheopur DC"] },
-      "Shivpuri Division": { "Shivpuri Sub-Division": ["Shivpuri DC"] },
-      "Datia Division": { "Datia Sub-Division": ["Datia DC"] },
-    },
-  },
-};
 
-// Module-level mutable hierarchy — updated by HierarchyManager
-let _H = JSON.parse(JSON.stringify(HIERARCHY));
-const syncHierarchy = (h) => { _H = JSON.parse(JSON.stringify(h)); };
 
-const ALL_REGIONS = () => Object.keys(_H);
-const getCircles = (r) => r ? Object.keys(_H[r] || {}) : [];
-const getDivisions = (r, c) => r && c ? Object.keys((_H[r] || {})[c] || {}) : [];
-const getSubdivisions = (r, c, d) => r && c && d ? Object.keys(((_H[r] || {})[c] || {})[d] || {}) : [];
-const getDCs = (r, c, d, s) => r && c && d && s ? (((_H[r] || {})[c] || {})[d] || {})[s] || [] : [];
 
-// ============================================================
-// STATUS VALUES (updated per requirement)
-// ============================================================
-const STATUS_OPTIONS = ["Within Warranty Period", "Beyond Warranty Period", "Under Repair", "In Transit", "Disposed", "Lost/Stolen"];
-
-const DESIGNATIONS = [
-  "CMD", "MD", "CGM", "GM", "DGM", "Chief Engineer", "Superintending Engineer",
-  "Executive Engineer", "Assistant Engineer", "Junior Engineer",
-  "Account Officer", "Senior Account Officer", "Manager IT", "Computer Operator",
-  "MIS Executive", "Junior Engineer IT", "Superintendent", "Assistant Superintendent",
-  "Steno", "Assistant", "Other"
-];
-
-const DOC_TYPES = ["Purchase Order", "Invoice", "Government Circular", "Office Order", "Work Order", "Warranty Card", "AMC Agreement", "Service Report", "Other"];
-
-// ============================================================
-// UTILITIES
-// ============================================================
-const formatDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-";
-const formatDateTime = (d) => d ? new Date(d).toLocaleString("en-IN") : "-";
-const isWarrantyExpired = (date) => date && new Date(date) < new Date();
-const isWarrantyExpiringSoon = (date) => { if (!date) return false; const diff = (new Date(date) - new Date()) / 86400000; return diff > 0 && diff <= 90; };
-const getWarrantyStatus = (date) => {
-  if (!date) return { label: "Unknown", color: T.textLight };
-  if (isWarrantyExpired(date)) return { label: "Beyond Warranty Period", color: T.danger };
-  if (isWarrantyExpiringSoon(date)) return { label: "Expiring Soon", color: T.warning };
-  return { label: "Within Warranty Period", color: T.success };
-};
-const getStatusColor = (s) => ({ "Within Warranty Period": T.success, "Beyond Warranty Period": T.danger, "Under Repair": T.warning, "In Transit": T.orange, "Disposed": T.textLight, "Lost/Stolen": "#7f1d1d" }[s] || T.textLight);
-const newId = (p) => `${p}${Date.now()}`;
-let GP_COUNTER = 1000000042;
-const newGatePassNo = () => String(GP_COUNTER++);
-const parseCSV = (text) => { const lines = text.trim().split("\n"); if (lines.length < 2) return []; const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, "")); return lines.slice(1).map(line => { const vals = line.split(",").map(v => v.trim().replace(/"/g, "")); const obj = {}; headers.forEach((h, i) => { obj[h] = vals[i] || ""; }); return obj; }); };
-const yearsOld = (d) => d ? (new Date() - new Date(d)) / (365.25 * 24 * 3600 * 1000) : 0;
-const buybackEligible = (d) => yearsOld(d) >= 5;
-const buybackValue = (bookValue) => bookValue ? Math.round(bookValue * 0.10 * 1.18) : 0; // 10% + 18% GST
-
-// ============================================================
-// INITIAL SAMPLE ASSETS
-// ============================================================
-const INITIAL_ASSETS = [
-  { id: "AST-2023-001", gatePassNo: "1000000037", deviceCode: 19, deviceName: "All In One PC", makeCode: 121, makeName: "Acer", model: "Veriton Z4680G", serialNo: "UXVW6SI215312157FC0700", purchaseDate: "2023-04-12", warrantyEnd: "2024-03-29", bookValue: 45000, invoiceNo: "INV-2023-0412-001", poNo: "PO-2023-ACER-0012", status: "Beyond Warranty Period", region: "Corporate Office", circle: "HQ-Bhopal", division: "Finance Department", subdivision: "Accounts Section", dc: "Accounts DC", office: "Finance Section", assignedTo: "Narendra Chouhan", designation: "Account Officer", mobile: "6232913049", room: "13", transferCount: 0, docReferences: [{ type: "Government Circular", refNo: POLICY_CIRCULAR, date: "2023-06-30", note: "IT Equipment Policy Circular" }], createdAt: "2023-04-12T14:36:42", createdBy: "Admin" },
-  { id: "AST-2023-002", gatePassNo: "1000000038", deviceCode: 4, deviceName: "Laptop", makeCode: 44, makeName: "Dell", model: "Latitude 5520", serialNo: "DLLAT5520XY2023B456", purchaseDate: "2023-06-15", warrantyEnd: "2026-06-14", bookValue: 65000, invoiceNo: "INV-2023-0615-002", poNo: "PO-2023-DELL-0005", status: "Within Warranty Period", region: "Corporate Office", circle: "HQ-Bhopal", division: "IT Department", subdivision: "SCADA Section", dc: "SCADA DC", office: "SCADA Section, O/o MPCZ", assignedTo: "Rameshwar Chaturvedi", designation: "GM", mobile: "9406913378", room: "25", transferCount: 1, docReferences: [], createdAt: "2023-06-15T10:00:00", createdBy: "Admin" },
-  { id: "AST-2023-003", gatePassNo: "1000000039", deviceCode: 2, deviceName: "Printer", makeCode: 22, makeName: "HP", model: "LaserJet Pro M404n", serialNo: "HPLJM404N2023C789", purchaseDate: "2023-07-01", warrantyEnd: "2024-06-30", bookValue: 18000, invoiceNo: "INV-2023-0701-003", poNo: "PO-2023-HP-0008", status: "Under Repair", region: "Bhopal Region", circle: "Bhopal City Circle", division: "Bhopal Urban Division-1", subdivision: "Arera Colony Sub-Division", dc: "Arera DC", office: "SE Office", assignedTo: "Priya Sharma", designation: "Executive Engineer", mobile: "9876543210", room: "08", transferCount: 2, docReferences: [], createdAt: "2023-07-01T09:00:00", createdBy: "Admin" },
-  { id: "AST-2019-004", gatePassNo: "1000000040", deviceCode: 3, deviceName: "UPS", makeCode: 31, makeName: "BPE", model: "Online UPS 2KVA", serialNo: "BPEUPS2KVABPL2019D012", purchaseDate: "2019-01-10", warrantyEnd: "2021-01-09", bookValue: 25000, invoiceNo: "INV-2019-0110-004", poNo: "PO-2019-BPE-0002", status: "Beyond Warranty Period", region: "Bhopal Region", circle: "Bhopal City Circle", division: "Bhopal Urban Division-1", subdivision: "Arera Colony Sub-Division", dc: "Arera DC", office: "EE Office Bhopal", assignedTo: "Suresh Verma", designation: "Assistant Engineer", mobile: "9812345678", room: "04", transferCount: 0, docReferences: [], createdAt: "2019-01-10T11:00:00", createdBy: "Admin" },
-];
-
-const INITIAL_TRANSFERS = [
-  { id: "TRF-001", assetId: "AST-2023-002", gatePassNo: "1000000041", fromRegion: "Corporate Office", fromCircle: "HQ-Bhopal", fromDivision: "Finance Department", fromSubdivision: "Accounts Section", fromDC: "Accounts DC", fromOffice: "Finance Section", fromPerson: "Old Employee", fromDesignation: "Assistant", toRegion: "Corporate Office", toCircle: "HQ-Bhopal", toDivision: "IT Department", toSubdivision: "SCADA Section", toDC: "SCADA DC", toOffice: "SCADA Section, O/o MPCZ", toPerson: "Rameshwar Chaturvedi", toDesignation: "GM", toMobile: "9406913378", reason: "Departmental transfer", authorizedBy: "Siddharth Jain", authorizedDesignation: "Manager IT", authorizedOffice: "Corporate Office", authorizedMobile: "9876500000", transferDate: "2023-09-01", place: "Bhopal", createdBy: "Admin", createdAt: "2023-09-01T10:00:00" },
-];
-
-const INITIAL_HISTORY = [
-  { id: "H001", assetId: "AST-2023-001", action: "Created", details: "Asset registered in system", performedBy: "Admin", timestamp: "2023-04-12T14:36:42" },
-  { id: "H002", assetId: "AST-2023-002", action: "Created", details: "Asset registered in system", performedBy: "Admin", timestamp: "2023-06-15T10:00:00" },
-  { id: "H003", assetId: "AST-2023-002", action: "Transferred", details: "Transferred to SCADA Section (Gate Pass: 1000000041)", performedBy: "Admin", timestamp: "2023-09-01T10:00:00" },
-  { id: "H004", assetId: "AST-2023-003", action: "Created", details: "Asset registered in system", performedBy: "Admin", timestamp: "2023-07-01T09:00:00" },
-];
-
-const INITIAL_BUYBACKS = [];
 
 // ============================================================
 // REUSABLE UI COMPONENTS
@@ -260,11 +90,6 @@ const SectionTitle = ({ children, action }) => (
   </div>
 );
 
-// Permission check helper
-const canEdit = (user) => user && user.accessLevel <= 2;
-const isMasterAdmin = (user) => user && user.accessLevel === 1;
-const isCorporateAdmin = (user) => user && user.accessLevel === 2;
-const isCircleUser = (user) => user && user.accessLevel === 3;
 
 // ============================================================
 // LOGIN
