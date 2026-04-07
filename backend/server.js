@@ -236,6 +236,62 @@ app.put('/api/settings/:key', async (req, res) => {
   }
 });
 
+// ============================================================
+// BULK DATA INITIALIZATION ROUTE
+// ============================================================
+
+app.post('/api/initialize', async (req, res) => {
+  try {
+    const { users, deviceTypes, makes, hierarchy, settings, assets, transfers, history, buybacks } = req.body;
+
+    // Create users
+    if (users) {
+      await User.bulkCreate(users, { ignoreDuplicates: true });
+    }
+
+    // Create device types
+    if (deviceTypes) {
+      await DeviceType.bulkCreate(deviceTypes, { ignoreDuplicates: true });
+    }
+
+    // Create makes
+    if (makes) {
+      await Make.bulkCreate(makes, { ignoreDuplicates: true });
+    }
+
+    // Create settings
+    if (settings) {
+      for (const [key, value] of Object.entries(settings)) {
+        await Settings.upsert({ key, value });
+      }
+    }
+
+    // Create assets
+    if (assets) {
+      await Asset.bulkCreate(assets, { ignoreDuplicates: true });
+    }
+
+    // Create transfers
+    if (transfers) {
+      await Transfer.bulkCreate(transfers, { ignoreDuplicates: true });
+    }
+
+    // Create history
+    if (history) {
+      await History.bulkCreate(history, { ignoreDuplicates: true });
+    }
+
+    // Create buybacks
+    if (buybacks) {
+      await Buyback.bulkCreate(buybacks, { ignoreDuplicates: true });
+    }
+
+    res.json({ message: 'Data initialized successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve React app for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
