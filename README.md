@@ -69,9 +69,9 @@ Create/update `.env` file:
 
 ```env
 # Database Configuration
-DATABASE_URL=postgresql://postgres:REDACTED@DB_HOST_REDACTED:5432/wfms_devdb?sslmode=require
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=REDACTED
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>?sslmode=require
+POSTGRES_USER=<DB_USER>
+POSTGRES_PASSWORD=<DB_PASSWORD>
 POSTGRES_PORT=5432
 DB_SCHEMA=public
 DB_SSL=true
